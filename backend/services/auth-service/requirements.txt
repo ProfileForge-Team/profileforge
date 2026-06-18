@@ -16,3 +16,4 @@ aio-pika
 
 pytest
 httpx
+alembic
