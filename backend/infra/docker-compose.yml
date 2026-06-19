@@ -1,0 +1,59 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: profileforge-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: profileforge
+      RABBITMQ_DEFAULT_PASS: profileforge
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  auth-service:
+    build:
+      context: ../services/auth-service
+    container_name: profileforge-auth-service
+    environment:
+      DATABASE_URL: sqlite:////data/auth.db
+      SECRET_KEY: dev_secret_change_later
+      RABBITMQ_URL: amqp://profileforge:profileforge@rabbitmq:5672/
+      RABBITMQ_EXCHANGE_NAME: profileforge.events
+    volumes:
+      - auth_sqlite_data:/data
+    depends_on:
+      - rabbitmq
+
+  auth-worker:
+    build:
+      context: ../services/auth-service
+    container_name: profileforge-auth-worker
+    command: ["python", "-m", "app.worker"]
+    environment:
+      DATABASE_URL: sqlite:////data/auth.db
+      SECRET_KEY: dev_secret_change_later
+      RABBITMQ_URL: amqp://profileforge:profileforge@rabbitmq:5672/
+      RABBITMQ_EXCHANGE_NAME: profileforge.events
+    volumes:
+      - auth_sqlite_data:/data
+    depends_on:
+      - rabbitmq
+
+  api-gateway:
+    build:
+      context: ../services/api-gateway
+    container_name: profileforge-api-gateway
+    ports:
+      - "18000:8000"
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:8001
+      PROFILE_SERVICE_URL: http://profile-service:8002
+      SITE_SERVICE_URL: http://site-service:8003
+      SECRET_KEY: dev_secret_change_later
+    depends_on:
+      - auth-service
+
+volumes:
+  rabbitmq_data:
+  auth_sqlite_data:
