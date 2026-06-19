@@ -11,7 +11,7 @@ Auth Service — микросервис авторизации для проек
 * Uvicorn
 * SQLAlchemy
 * Alembic
-* PostgreSQL
+* SQLite
 * RabbitMQ
 * aio-pika
 * pytest
@@ -218,11 +218,11 @@ Invoke-RestMethod `
   -Headers @{ Authorization = "Bearer $token" }
 ```
 
+```markdown
 Проверка outbox events:
 
 ```powershell
-docker compose exec auth-db psql -U auth_user -d auth_db -c "SELECT event_type, status, retry_count, published_at, last_error FROM outbox_events ORDER BY created_at DESC LIMIT 5;"
-```
+docker compose exec auth-service python -c "import sqlite3; con = sqlite3.connect('/data/auth.db'); print(con.execute('SELECT event_type, status, retry_count, published_at, last_error FROM outbox_events ORDER BY created_at DESC LIMIT 5').fetchall())"
 
 ## Тесты
 
@@ -270,7 +270,7 @@ auth-service/
 * логин пользователя;
 * JWT access token;
 * получение текущего пользователя;
-* PostgreSQL;
+* SQLite
 * RabbitMQ;
 * Transactional Outbox Pattern;
 * auth-worker;
