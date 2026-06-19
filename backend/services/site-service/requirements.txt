@@ -1,0 +1,20 @@
+# Web framework
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+
+# Config / validation
+pydantic==2.10.3
+pydantic-settings==2.7.0
+
+# Database (SQLAlchemy 2.x + async SQLite)
+sqlalchemy==2.0.36
+aiosqlite==0.20.0
+alembic==1.14.0
+
+# RabbitMQ
+aio-pika==9.5.4
+
+# Tests
+pytest==8.3.4
+pytest-asyncio==0.25.0
+httpx==0.28.1
