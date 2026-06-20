@@ -1,3 +1,4 @@
+from app.core.config import settings
 from app.core.exceptions import (
     ForbiddenError,
     NotFoundError,
@@ -123,7 +124,7 @@ class SiteService:
 
         site.status = "published"
         site.published_at = datetime.utcnow()
-        site.public_url = f"http://localhost:8000/public/{site.slug}"
+        site.public_url = f"{settings.PUBLIC_SITE_BASE_URL}/{site.slug}"
 
         await self.outbox.add_event(
             event_type="site.published",

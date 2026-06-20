@@ -10,6 +10,12 @@ services:
       RABBITMQ_DEFAULT_PASS: profileforge
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   auth-service:
     build:
@@ -23,7 +29,8 @@ services:
     volumes:
       - auth_sqlite_data:/data
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
 
   auth-worker:
     build:
@@ -38,7 +45,37 @@ services:
     volumes:
       - auth_sqlite_data:/data
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
+
+  profile-service:
+    build:
+      context: ../services/profile-service
+    container_name: profileforge-profile-service
+    environment:
+      PROFILE_DATABASE_URL: sqlite:////data/profile.db
+      RABBITMQ_URL: amqp://profileforge:profileforge@rabbitmq:5672/
+      RABBITMQ_EXCHANGE_NAME: profileforge.events
+    volumes:
+      - profile_sqlite_data:/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  site-service:
+    build:
+      context: ../services/site-service
+    container_name: profileforge-site-service
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:////data/site_service.db
+      RABBITMQ_URL: amqp://profileforge:profileforge@rabbitmq:5672/
+      PUBLIC_SITE_BASE_URL: "http://localhost:18000/api/public"
+    volumes:
+      - site_sqlite_data:/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   api-gateway:
     build:
@@ -49,11 +86,15 @@ services:
     environment:
       AUTH_SERVICE_URL: http://auth-service:8001
       PROFILE_SERVICE_URL: http://profile-service:8002
-      SITE_SERVICE_URL: http://site-service:8003
+      SITE_SERVICE_URL: http://site-service:8000
       SECRET_KEY: dev_secret_change_later
     depends_on:
       - auth-service
+      - profile-service
+      - site-service
 
 volumes:
   rabbitmq_data:
   auth_sqlite_data:
+  profile_sqlite_data:
+  site_sqlite_data:

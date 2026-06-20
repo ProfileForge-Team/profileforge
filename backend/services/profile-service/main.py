@@ -30,7 +30,11 @@ from profile_app.events.consumer import handle_user_registered
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     await rabbitmq.connect()
-    await rabbitmq.subscribe("profile-service.user-registered.queue", handle_user_registered)
+    await rabbitmq.subscribe(
+    "profile-service.user-registered.queue",
+    "user.registered",
+    handle_user_registered,
+)
     task = asyncio.create_task(process_outbox())
     yield
     task.cancel()
