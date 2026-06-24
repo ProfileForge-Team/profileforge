@@ -16,12 +16,44 @@ class SocialLinkOut(SocialLinkBase):
     class Config:
         from_attributes = True
 
+class ProjectBase(BaseModel):
+    title: str = Field(..., min_length=1, max_length=120)
+    description: Optional[str] = Field(None, max_length=1000)
+    url: Optional[str] = Field(None, max_length=500)
+    repository_url: Optional[str] = Field(None, max_length=500)
+    image_url: Optional[str] = Field(None, max_length=500)
+    tags: Optional[List[str]] = None
+    position: int = Field(default=0, ge=0)
+
+class ProjectCreate(ProjectBase):
+    pass
+
+class ProjectUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=120)
+    description: Optional[str] = Field(None, max_length=1000)
+    url: Optional[str] = Field(None, max_length=500)
+    repository_url: Optional[str] = Field(None, max_length=500)
+    image_url: Optional[str] = Field(None, max_length=500)
+    tags: Optional[List[str]] = None
+    position: Optional[int] = Field(None, ge=0)
+
+class ProjectOut(ProjectBase):
+    id: str
+    profile_id: str
+    created_at: datetime
+    updated_at: datetime
+    tags: List[str] = []
+
+    class Config:
+        from_attributes = True
+
 class ProfileBase(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=30)
     display_name: Optional[str] = Field(None, max_length=100)
     headline: Optional[str] = Field(None, max_length=150)
     bio: Optional[str] = Field(None, max_length=500)
     location: Optional[str] = Field(None, max_length=100)
+    skills: Optional[List[str]] = None
 
     @field_validator("username")
     @classmethod
@@ -39,7 +71,9 @@ class ProfileOut(ProfileBase):
     user_id: str
     created_at: datetime
     updated_at: datetime
+    skills: List[str] = []
     social_links: List[SocialLinkOut] = []
+    projects: List[ProjectOut] = []
 
     class Config:
         from_attributes = True

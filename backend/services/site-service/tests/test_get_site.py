@@ -19,3 +19,40 @@ async def test_get_my_site_not_found_when_no_site(client, auth_headers):
 
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "NOT_FOUND"
+
+
+async def test_dashboard_summary_without_site(client, auth_headers):
+    response = await client.get("/sites/dashboard/summary", headers=auth_headers)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["has_site"] is False
+    assert body["site"] is None
+    assert body["blocks_count"] == 0
+    assert body["is_published"] is False
+    assert body["missing_required_blocks"] == ["about"]
+
+
+async def test_dashboard_summary_with_draft_site(client, auth_headers):
+    create_response = await client.post(
+        "/sites",
+        json={"title": "Dashboard Site", "slug": "dashboard-site"},
+        headers=auth_headers,
+    )
+    site_id = create_response.json()["id"]
+    await client.post(
+        f"/sites/{site_id}/blocks",
+        json={"type": "about", "position": 1, "content": {"text": "hi"}},
+        headers=auth_headers,
+    )
+
+    response = await client.get("/sites/dashboard/summary", headers=auth_headers)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["has_site"] is True
+    assert body["site"]["slug"] == "dashboard-site"
+    assert body["blocks_count"] == 1
+    assert body["is_published"] is False
+    assert body["public_url"] is None
+    assert body["missing_required_blocks"] == []

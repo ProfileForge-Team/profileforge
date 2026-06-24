@@ -55,6 +55,13 @@ class SitePublishOut(BaseModel):
     public_url: str | None
 
 
+class TemplateOut(BaseModel):
+    id: str
+    name: str
+    description: str
+    preview_image: str | None = None
+
+
 # ---------- SiteBlock ----------
 
 class SiteBlockCreate(BaseModel):
@@ -78,6 +85,20 @@ class SiteBlockOut(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True, "populate_by_name": True}
+
+
+class SitePreviewOut(BaseModel):
+    site: SiteOut
+    blocks: list[SiteBlockOut]
+
+
+class DashboardSummaryOut(BaseModel):
+    has_site: bool
+    site: SiteOut | None = None
+    blocks_count: int = 0
+    is_published: bool = False
+    public_url: str | None = None
+    missing_required_blocks: list[BlockType] = []
 
 
 # ---------- Public site ----------

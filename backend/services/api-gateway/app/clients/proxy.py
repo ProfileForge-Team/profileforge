@@ -99,6 +99,52 @@ async def proxy_request(
     )
 
 
+async def request_json(
+    request: Request,
+    target_base_url: str,
+    target_path: str,
+    require_auth: bool = False,
+) -> Any:
+    url = f"{target_base_url.rstrip('/')}/{target_path.lstrip('/')}"
+    headers = _build_headers(request, require_auth=require_auth)
+
+    try:
+        async with httpx.AsyncClient(timeout=settings.request_timeout_seconds) as client:
+            response = await client.get(url=url, headers=headers)
+    except httpx.ConnectError:
+        raise gateway_error(
+            status_code=503,
+            code="SERVICE_UNAVAILABLE",
+            message=f"Service is unavailable: {target_base_url}",
+        )
+    except httpx.TimeoutException:
+        raise gateway_error(
+            status_code=504,
+            code="SERVICE_TIMEOUT",
+            message=f"Service timeout: {target_base_url}",
+        )
+    except httpx.HTTPError as exc:
+        raise gateway_error(
+            status_code=502,
+            code="BAD_GATEWAY",
+            message="Gateway failed to call downstream service",
+            details={"error": str(exc)},
+        )
+
+    if response.status_code >= 400:
+        raise gateway_error(
+            status_code=response.status_code,
+            code="DOWNSTREAM_ERROR",
+            message="Downstream service returned an error",
+            details={
+                "target": url,
+                "body": response.text,
+            },
+        )
+
+    return response.json()
+
+
 async def check_service_ready(service_url: str) -> dict[str, Any]:
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:

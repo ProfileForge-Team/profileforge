@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, status
 from app.api.deps import get_site_service
 from app.core.security import get_current_user_id
 from app.schemas.site import (
+    DashboardSummaryOut,
     PublicSiteBlockOut,
     PublicSiteOut,
     SiteBlockCreate,
@@ -11,7 +12,9 @@ from app.schemas.site import (
     SiteCreate,
     SiteOut,
     SitePublishOut,
+    SitePreviewOut,
     SiteUpdate,
+    TemplateOut,
 )
 from app.services.site_service import SiteService
 
@@ -60,6 +63,21 @@ async def update_site(
     return SiteOut.model_validate(site)
 
 
+@router.get("/sites/templates", response_model=list[TemplateOut])
+async def list_templates(
+    service: SiteService = Depends(get_site_service),
+):
+    return await service.list_templates()
+
+
+@router.get("/sites/dashboard/summary", response_model=DashboardSummaryOut)
+async def get_dashboard_summary(
+    user_id: str = Depends(get_current_user_id),
+    service: SiteService = Depends(get_site_service),
+):
+    return await service.get_dashboard_summary(user_id)
+
+
 @router.post(
     "/sites/{site_id}/blocks",
     response_model=SiteBlockOut,
@@ -73,6 +91,29 @@ async def add_block(
 ):
     block = await service.add_block(site_id, user_id, data)
     return _block_to_out(block)
+
+
+@router.get("/sites/{site_id}/blocks", response_model=list[SiteBlockOut])
+async def list_blocks(
+    site_id: str,
+    user_id: str = Depends(get_current_user_id),
+    service: SiteService = Depends(get_site_service),
+):
+    blocks = await service.list_blocks(site_id, user_id)
+    return [_block_to_out(block) for block in blocks]
+
+
+@router.get("/sites/{site_id}/preview", response_model=SitePreviewOut)
+async def get_site_preview(
+    site_id: str,
+    user_id: str = Depends(get_current_user_id),
+    service: SiteService = Depends(get_site_service),
+):
+    site, blocks = await service.get_preview(site_id, user_id)
+    return SitePreviewOut(
+        site=SiteOut.model_validate(site),
+        blocks=[_block_to_out(block) for block in blocks],
+    )
 
 
 @router.patch("/sites/{site_id}/blocks/{block_id}", response_model=SiteBlockOut)

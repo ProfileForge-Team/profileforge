@@ -13,6 +13,33 @@ from app.schemas.site import SiteBlockCreate, SiteBlockUpdate, SiteCreate, SiteU
 # Минимальный набор блоков, без которых нельзя публиковать сайт (см. п. 7.7 ТЗ)
 REQUIRED_BLOCK_TYPES = {"about"}
 
+AVAILABLE_TEMPLATES = [
+    {
+        "id": "default",
+        "name": "Default",
+        "description": "Universal portfolio layout for MVP profiles.",
+        "preview_image": None,
+    },
+    {
+        "id": "dark-developer",
+        "name": "Dark Developer",
+        "description": "High-contrast dark layout for developer portfolios.",
+        "preview_image": None,
+    },
+    {
+        "id": "minimal-resume",
+        "name": "Minimal Resume",
+        "description": "Clean resume-first layout with restrained visual styling.",
+        "preview_image": None,
+    },
+    {
+        "id": "cyber-showcase",
+        "name": "Cyber Showcase",
+        "description": "Expressive portfolio layout for project-heavy pages.",
+        "preview_image": None,
+    },
+]
+
 
 class SiteService:
     def __init__(self, db, sites: SiteRepository, outbox: OutboxRepository):
@@ -51,6 +78,34 @@ class SiteService:
             raise NotFoundError("Сайт не найден")
         return site
 
+    async def list_templates(self) -> list[dict]:
+        return AVAILABLE_TEMPLATES
+
+    async def get_dashboard_summary(self, owner_user_id: str) -> dict:
+        site = await self.sites.get_by_owner(owner_user_id)
+        if site is None:
+            return {
+                "has_site": False,
+                "site": None,
+                "blocks_count": 0,
+                "is_published": False,
+                "public_url": None,
+                "missing_required_blocks": sorted(REQUIRED_BLOCK_TYPES),
+            }
+
+        blocks = await self.sites.list_blocks(site.id)
+        block_types = {block.type for block in blocks}
+        missing_required_blocks = sorted(REQUIRED_BLOCK_TYPES - block_types)
+
+        return {
+            "has_site": True,
+            "site": site,
+            "blocks_count": len(blocks),
+            "is_published": site.status == "published",
+            "public_url": site.public_url,
+            "missing_required_blocks": missing_required_blocks,
+        }
+
     async def update_site(
         self, site_id: str, owner_user_id: str, data: SiteUpdate
     ) -> Site:
@@ -80,6 +135,17 @@ class SiteService:
         await self.db.commit()
         await self.db.refresh(block)
         return block
+
+    async def list_blocks(self, site_id: str, owner_user_id: str) -> list[SiteBlock]:
+        await self._get_owned_site(site_id, owner_user_id)
+        return await self.sites.list_blocks(site_id)
+
+    async def get_preview(
+        self, site_id: str, owner_user_id: str
+    ) -> tuple[Site, list[SiteBlock]]:
+        site = await self._get_owned_site(site_id, owner_user_id)
+        blocks = await self.sites.list_blocks(site_id)
+        return site, blocks
 
     async def update_block(
         self, site_id: str, block_id: str, owner_user_id: str, data: SiteBlockUpdate

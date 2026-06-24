@@ -247,6 +247,40 @@ def test_sites_root_is_proxied_to_site_service_with_auth_required(monkeypatch):
     assert captured["body"]["slug"] == "my-portfolio"
 
 
+def test_site_templates_are_proxied_without_auth(monkeypatch):
+    captured = {}
+
+    async def fake_proxy_request(request, target_base_url, target_path, require_auth=False):
+        captured["method"] = request.method
+        captured["target_base_url"] = target_base_url
+        captured["target_path"] = target_path
+        captured["require_auth"] = require_auth
+
+        return JSONResponse(
+            status_code=200,
+            content=[
+                {
+                    "id": "default",
+                    "name": "Default",
+                    "description": "Universal portfolio layout",
+                    "preview_image": None,
+                }
+            ],
+        )
+
+    monkeypatch.setattr(routes, "proxy_request", fake_proxy_request)
+
+    response = client.get("/api/sites/templates")
+
+    assert response.status_code == 200
+    assert response.json()[0]["id"] == "default"
+
+    assert captured["method"] == "GET"
+    assert captured["target_base_url"] == settings.site_service_url
+    assert captured["target_path"] == "/sites/templates"
+    assert captured["require_auth"] is False
+
+
 def test_public_page_is_proxied_to_site_service_without_auth(monkeypatch):
     captured = {}
 

@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, HTTPException, Header
+from fastapi import FastAPI, Depends, HTTPException, Header, status
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 import uvicorn
@@ -15,10 +15,18 @@ from profile_app.repositories.profile import (
     update_profile,
     get_profile_by_username,
     is_username_taken,
+    list_projects,
+    get_project,
+    create_project,
+    update_project,
+    delete_project,
 )
 from profile_app.schemas.profile import (
     ProfileOut,
     ProfileUpdate,
+    ProjectCreate,
+    ProjectOut,
+    ProjectUpdate,
     CheckUsernameResponse,
 )
 from profile_app.events.rabbitmq import rabbitmq
@@ -26,9 +34,20 @@ from profile_app.events.outbox_publisher import process_outbox
 from profile_app.events.consumer import handle_user_registered
 
 
+def ensure_profile_schema():
+    with engine.begin() as conn:
+        columns = conn.execute(text("PRAGMA table_info(profiles)")).fetchall()
+        column_names = {column[1] for column in columns}
+        if "skills" not in column_names:
+            conn.execute(
+                text("ALTER TABLE profiles ADD COLUMN skills JSON DEFAULT '[]' NOT NULL")
+            )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    ensure_profile_schema()
     await rabbitmq.connect()
     await rabbitmq.subscribe(
     "profile-service.user-registered.queue",
@@ -117,6 +136,71 @@ async def get_public_profile(username: str, db: Session = Depends(get_db)):
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
     return profile
+
+
+@app.get("/profiles/me/projects", response_model=list[ProjectOut])
+async def list_my_projects(
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    profile = get_profile_by_user_id(db, user_id)
+    if not profile:
+        profile = create_profile(db, user_id)
+    return list_projects(db, profile)
+
+
+@app.post(
+    "/profiles/me/projects",
+    response_model=ProjectOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_my_project(
+    project_data: ProjectCreate,
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    profile = get_profile_by_user_id(db, user_id)
+    if not profile:
+        profile = create_profile(db, user_id)
+    return create_project(db, profile, project_data)
+
+
+@app.patch("/profiles/me/projects/{project_id}", response_model=ProjectOut)
+async def update_my_project(
+    project_id: str,
+    project_data: ProjectUpdate,
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    profile = get_profile_by_user_id(db, user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    project = get_project(db, profile, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    return update_project(db, project, project_data)
+
+
+@app.delete(
+    "/profiles/me/projects/{project_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_my_project(
+    project_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    profile = get_profile_by_user_id(db, user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    project = get_project(db, profile, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    delete_project(db, project)
 
 
 @app.get("/profiles/check-username/{username}", response_model=CheckUsernameResponse)
