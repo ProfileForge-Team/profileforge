@@ -1,4 +1,4 @@
-﻿from fastapi import HTTPException
+from fastapi import HTTPException
 
 
 def gateway_error(status_code: int, code: str, message: str, details: dict | None = None) -> HTTPException:

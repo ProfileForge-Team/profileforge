@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request
 
 from app.clients.proxy import check_service_ready, proxy_request
 from app.core.config import settings
@@ -21,7 +21,10 @@ async def ready():
     profile = await check_service_ready(settings.profile_service_url)
     site = await check_service_ready(settings.site_service_url)
 
-    gateway_ready = auth["status"] == "ok"
+    gateway_ready = all(
+        service["status"] == "ok"
+        for service in (auth, profile, site)
+    )
 
     return {
         "status": "ready" if gateway_ready else "degraded",

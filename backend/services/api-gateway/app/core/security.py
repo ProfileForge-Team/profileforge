@@ -1,4 +1,4 @@
-﻿from jose import JWTError, jwt
+from jose import JWTError, jwt
 
 from app.core.config import settings
 from app.core.errors import gateway_error

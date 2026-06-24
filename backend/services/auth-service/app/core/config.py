@@ -4,7 +4,7 @@
 class Settings(BaseSettings):
     service_name: str = "auth-service"
 
-    database_url: str = "postgresql+psycopg2://auth_user:auth_password@auth-db:5432/auth_db"
+    database_url: str = "sqlite:///./auth.db"
 
     secret_key: str = "CHANGE_ME_IN_PRODUCTION"
     algorithm: str = "HS256"

@@ -70,6 +70,7 @@ services:
     environment:
       DATABASE_URL: sqlite+aiosqlite:////data/site_service.db
       RABBITMQ_URL: amqp://profileforge:profileforge@rabbitmq:5672/
+      RABBITMQ_EXCHANGE_NAME: profileforge.events
       PUBLIC_SITE_BASE_URL: "http://localhost:18000/api/public"
     volumes:
       - site_sqlite_data:/data

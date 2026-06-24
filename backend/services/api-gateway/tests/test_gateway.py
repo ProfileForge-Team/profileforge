@@ -1,4 +1,4 @@
-﻿from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -19,7 +19,7 @@ def test_health_returns_ok():
     }
 
 
-def test_ready_returns_services_status(monkeypatch):
+def test_ready_returns_degraded_when_any_downstream_is_unavailable(monkeypatch):
     async def fake_check_service_ready(service_url: str):
         if service_url == settings.auth_service_url:
             return {
@@ -40,13 +40,26 @@ def test_ready_returns_services_status(monkeypatch):
 
     data = response.json()
 
-    assert data["status"] == "ready"
+    assert data["status"] == "degraded"
     assert data["service"] == "api-gateway"
     assert data["services"]["auth-service"]["status"] == "ok"
     assert data["services"]["profile-service"]["status"] == "unavailable"
     assert data["services"]["site-service"]["status"] == "unavailable"
 
+def test_ready_returns_ready_when_all_downstream_services_are_ready(monkeypatch):
+    async def fake_check_service_ready(service_url: str):
+        return {
+            "status": "ok",
+            "status_code": 200,
+        }
 
+    monkeypatch.setattr(routes, "check_service_ready", fake_check_service_ready)
+
+    response = client.get("/ready")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "ready"
+    
 def test_auth_register_is_proxied_to_auth_service_without_auth(monkeypatch):
     captured = {}
 

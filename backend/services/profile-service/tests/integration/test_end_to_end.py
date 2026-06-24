@@ -1,4 +1,4 @@
-import os
+﻿import os
 import sqlite3
 import time
 import uuid
@@ -177,7 +177,6 @@ def test_full_profileforge_user_journey():
     publish_response.json()["public_url"]
     == f"{PUBLIC_SITE_BASE_URL}/{slug}"
 )
-
         public_response = client.get(f"/api/public/{slug}")
 
         assert public_response.status_code == 200, public_response.text

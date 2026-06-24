@@ -1,4 +1,4 @@
-﻿from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -6,7 +6,7 @@ class Settings(BaseSettings):
 
     auth_service_url: str = "http://auth-service:8001"
     profile_service_url: str = "http://profile-service:8002"
-    site_service_url: str = "http://site-service:8003"
+    site_service_url: str = "http://site-service:8000"
 
     secret_key: str = "dev_secret_change_later"
     algorithm: str = "HS256"

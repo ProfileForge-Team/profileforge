@@ -1,7 +1,8 @@
-﻿import uuid
+import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import Column, DateTime, Integer, JSON, String, Text
+
 
 from app.models.base import Base
 

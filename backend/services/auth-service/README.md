@@ -198,7 +198,7 @@ Invoke-RestMethod `
 Логин:
 
 ```powershell
-$response = Invoke-RestMethod `
+$response = Invoke-RestMethod `import
   -Uri "http://localhost:8001/auth/login" `
   -Method Post `
   -ContentType "application/json" `

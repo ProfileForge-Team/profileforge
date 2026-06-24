@@ -8,7 +8,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(settings.SERVICE_NAME)
 
-EXCHANGE_NAME = "site-service.events"
+EXCHANGE_NAME = settings.RABBITMQ_EXCHANGE_NAME
 
 _connection: AbstractRobustConnection | None = None
 

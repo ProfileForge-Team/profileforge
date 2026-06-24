@@ -1,4 +1,4 @@
-﻿from typing import Any
+from typing import Any
 
 import httpx
 from fastapi import Request, Response

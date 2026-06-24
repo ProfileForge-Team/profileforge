@@ -14,6 +14,7 @@ class Settings(BaseSettings):
 
     # RabbitMQ
     RABBITMQ_URL: str = "amqp://guest:guest@localhost:5672/"
+    RABBITMQ_EXCHANGE_NAME: str = "profileforge.events"
     PUBLIC_SITE_BASE_URL: str = "http://localhost:8000/public"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
