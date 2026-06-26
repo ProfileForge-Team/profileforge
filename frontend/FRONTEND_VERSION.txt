@@ -1,0 +1,3 @@
+ProfileForge frontend — restored navigation/design patch v4
+Navigation: Главная | Кабинет | Редактор | Проекты | Шаблоны | Публичная | Рейтинг
+Logo: supplied ProfileForge logo (header and dashboard)
