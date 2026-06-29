@@ -56,3 +56,44 @@ async def test_dashboard_summary_with_draft_site(client, auth_headers):
     assert body["is_published"] is False
     assert body["public_url"] is None
     assert body["missing_required_blocks"] == []
+
+
+async def test_update_site_slug(client, auth_headers):
+    create_response = await client.post(
+        "/sites",
+        json={"title": "Old Site", "slug": "old-site"},
+        headers=auth_headers,
+    )
+    site_id = create_response.json()["id"]
+
+    response = await client.patch(
+        f"/sites/{site_id}",
+        json={"slug": "alex-react-dev"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["slug"] == "alex-react-dev"
+
+
+async def test_update_site_slug_conflict(client, auth_headers, other_auth_headers):
+    await client.post(
+        "/sites",
+        json={"title": "Taken Site", "slug": "taken-slug"},
+        headers=other_auth_headers,
+    )
+    create_response = await client.post(
+        "/sites",
+        json={"title": "My Site", "slug": "my-site"},
+        headers=auth_headers,
+    )
+    site_id = create_response.json()["id"]
+
+    response = await client.patch(
+        f"/sites/{site_id}",
+        json={"slug": "taken-slug"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "SLUG_ALREADY_EXISTS"

@@ -6,6 +6,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import (
     LoginRequest,
+    RefreshTokenRequest,
     RegisterRequest,
     RegisterResponse,
     TokenResponse,
@@ -43,15 +44,26 @@ def login(
     request: LoginRequest,
     db: Session = Depends(get_db),
 ):
-    access_token = AuthService.login_user(
+    tokens = AuthService.login_user(
         db=db,
         email=request.email,
         password=request.password,
     )
 
-    return TokenResponse(
-        access_token=access_token,
+    return TokenResponse(**tokens)
+
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh(
+    request: RefreshTokenRequest,
+    db: Session = Depends(get_db),
+):
+    tokens = AuthService.refresh_tokens(
+        db=db,
+        refresh_token=request.refresh_token,
     )
+
+    return TokenResponse(**tokens)
 
 
 @router.get("/me", response_model=UserResponse)

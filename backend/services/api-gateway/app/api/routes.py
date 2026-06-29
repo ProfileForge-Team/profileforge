@@ -91,7 +91,7 @@ async def dashboard_summary(request: Request):
     methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
 )
 async def proxy_auth(path: str, request: Request):
-    require_auth = path not in {"register", "login"}
+    require_auth = path not in {"register", "login", "refresh"}
 
     return await proxy_request(
         request=request,

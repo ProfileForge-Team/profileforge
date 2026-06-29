@@ -113,6 +113,14 @@ class SiteService:
 
         if data.title is not None:
             site.title = data.title
+        if data.slug is not None and data.slug != site.slug:
+            existing_slug = await self.sites.get_by_slug(data.slug)
+            if existing_slug is not None and existing_slug.id != site.id:
+                raise SlugAlreadyExistsError("Slug уже занят", field="slug")
+
+            site.slug = data.slug
+            if site.status == "published":
+                site.public_url = f"{settings.PUBLIC_SITE_BASE_URL}/{site.slug}"
         if data.template_id is not None:
             site.template_id = data.template_id
 

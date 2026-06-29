@@ -31,7 +31,19 @@ class SiteCreate(BaseModel):
 
 class SiteUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=200)
+    slug: str | None = None
     template_id: str | None = Field(default=None, max_length=50)
+
+    @field_validator("slug")
+    @classmethod
+    def validate_optional_slug(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        if not SLUG_PATTERN.match(v):
+            raise ValueError(
+                "slug должен быть 3-50 символов: латиница в нижнем регистре, цифры, дефис"
+            )
+        return v
 
 
 class SiteOut(BaseModel):

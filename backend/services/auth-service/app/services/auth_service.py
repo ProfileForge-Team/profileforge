@@ -2,7 +2,13 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token, hash_password, verify_password
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    decode_refresh_token,
+    hash_password,
+    verify_password,
+)
 from app.models.outbox_event import OutboxEvent
 from app.models.user import User
 
@@ -81,7 +87,14 @@ class AuthService:
             )
 
     @staticmethod
-    def login_user(db: Session, email: str, password: str) -> str:
+    def _build_token_pair(user_id: str) -> dict[str, str]:
+        return {
+            "access_token": create_access_token(subject=user_id),
+            "refresh_token": create_refresh_token(subject=user_id),
+        }
+
+    @staticmethod
+    def login_user(db: Session, email: str, password: str) -> dict[str, str]:
         user = db.query(User).filter(User.email == email).first()
 
         if not user:
@@ -117,4 +130,45 @@ class AuthService:
                 },
             )
 
-        return create_access_token(subject=user.id)
+        return AuthService._build_token_pair(user.id)
+
+    @staticmethod
+    def refresh_tokens(db: Session, refresh_token: str) -> dict[str, str]:
+        try:
+            payload = decode_refresh_token(refresh_token)
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={
+                    "error": {
+                        "code": "INVALID_REFRESH_TOKEN",
+                        "message": "Invalid or expired refresh token",
+                    }
+                },
+            )
+
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={
+                    "error": {
+                        "code": "INVALID_REFRESH_TOKEN",
+                        "message": "Invalid or expired refresh token",
+                    }
+                },
+            )
+
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user or not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={
+                    "error": {
+                        "code": "INVALID_REFRESH_TOKEN",
+                        "message": "Invalid or expired refresh token",
+                    }
+                },
+            )
+
+        return AuthService._build_token_pair(user.id)

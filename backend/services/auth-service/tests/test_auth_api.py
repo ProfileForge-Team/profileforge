@@ -61,6 +61,8 @@ def test_register_login_me_and_outbox_event():
 
     assert "access_token" in login_data
     assert login_data["access_token"]
+    assert "refresh_token" in login_data
+    assert login_data["refresh_token"]
 
     token = login_data["access_token"]
 
@@ -75,6 +77,25 @@ def test_register_login_me_and_outbox_event():
     assert me_data["id"] == user_id
     assert me_data["email"] == email
     assert me_data["is_active"] is True
+
+    refresh_response = client.post(
+        "/auth/refresh",
+        json={"refresh_token": login_data["refresh_token"]},
+    )
+
+    assert refresh_response.status_code == 200
+    refresh_data = refresh_response.json()
+
+    assert refresh_data["access_token"]
+    assert refresh_data["refresh_token"]
+
+    refreshed_me_response = client.get(
+        "/auth/me",
+        headers={"Authorization": f"Bearer {refresh_data['access_token']}"},
+    )
+
+    assert refreshed_me_response.status_code == 200
+    assert refreshed_me_response.json()["id"] == user_id
 
     db = SessionLocal()
     try:
