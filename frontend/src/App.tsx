@@ -10,10 +10,12 @@ import { PublicPortfolioPage } from './pages/PublicPortfolioPage';
 import { TemplatesPage } from './pages/TemplatesPage';
 
 function ShellPage({ children }: { children: ReactNode }) {
+  /** Wraps authenticated-style pages with the shared application shell. */
   return <AppShell>{children}</AppShell>;
 }
 
 export default function App() {
+  /** Defines all frontend routes, including read-only public resume routes. */
   return (
     <Routes>
       <Route path="/" element={<ShellPage><HomePage /></ShellPage>} />

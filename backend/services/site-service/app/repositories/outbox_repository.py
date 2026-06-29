@@ -5,16 +5,13 @@ from app.models.outbox import OutboxEvent
 
 class OutboxRepository:
     def __init__(self, db: AsyncSession):
+        """Store the request-scoped async database session."""
         self.db = db
 
     async def add_event(
         self, event_type: str, aggregate_id: str, payload: dict
     ) -> OutboxEvent:
-        """
-        Пишет событие в outbox в РАМКАХ ТЕКУЩЕЙ транзакции
-        (та же сессия, что и основная операция — см. п. 4.1 ТЗ).
-        Публикация в RabbitMQ происходит отдельным publisher'ом.
-        """
+        """Add an event to the transactional outbox in the current unit of work."""
         event = OutboxEvent(
             event_type=event_type,
             aggregate_id=aggregate_id,

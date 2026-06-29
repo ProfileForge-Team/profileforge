@@ -35,6 +35,7 @@ from profile_app.events.consumer import handle_user_registered
 
 
 def ensure_profile_schema():
+    """Add MVP-era columns when an existing local SQLite database is missing them."""
     with engine.begin() as conn:
         columns = conn.execute(text("PRAGMA table_info(profiles)")).fetchall()
         column_names = {column[1] for column in columns}
@@ -46,14 +47,15 @@ def ensure_profile_schema():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Initialize tables, RabbitMQ subscriptions, and the outbox task."""
     Base.metadata.create_all(bind=engine)
     ensure_profile_schema()
     await rabbitmq.connect()
     await rabbitmq.subscribe(
-    "profile-service.user-registered.queue",
-    "user.registered",
-    handle_user_registered,
-)
+        "profile-service.user-registered.queue",
+        "user.registered",
+        handle_user_registered,
+    )
     task = asyncio.create_task(process_outbox())
     yield
     task.cancel()
@@ -64,12 +66,14 @@ app = FastAPI(title="Profile Service", lifespan=lifespan)
 
 
 def get_current_user_id(x_user_id: str = Header(..., alias="X-User-ID")) -> str:
+    """Read the user id injected by API Gateway for protected profile routes."""
     if not x_user_id:
         raise HTTPException(status_code=401, detail="User ID is required")
     return x_user_id
 
 
 def get_db():
+    """Yield a SQLAlchemy session and always close it after the request."""
     db = SessionLocal()
     try:
         yield db
@@ -79,11 +83,13 @@ def get_db():
 
 @app.get("/health")
 async def health():
+    """Return a liveness response without touching dependencies."""
     return {"status": "ok"}
 
 
 @app.get("/ready")
 async def ready():
+    """Verify the profile database can answer a simple query."""
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
@@ -97,6 +103,7 @@ async def get_my_profile(
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
+    """Return the current user's profile, creating the MVP empty profile if needed."""
     profile = get_profile_by_user_id(db, user_id)
     if not profile:
         profile = create_profile(db, user_id)
@@ -109,6 +116,7 @@ async def update_my_profile(
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
+    """Patch current profile fields and enforce username uniqueness."""
     profile = get_profile_by_user_id(db, user_id)
     if not profile:
         profile = create_profile(db, user_id)
@@ -132,6 +140,7 @@ async def update_my_profile(
 
 @app.get("/profiles/by-username/{username}", response_model=ProfileOut)
 async def get_public_profile(username: str, db: Session = Depends(get_db)):
+    """Return public profile data by username for read-only pages."""
     profile = get_profile_by_username(db, username)
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
@@ -143,6 +152,7 @@ async def list_my_projects(
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
+    """Return the current user's projects ordered for portfolio display."""
     profile = get_profile_by_user_id(db, user_id)
     if not profile:
         profile = create_profile(db, user_id)
@@ -159,6 +169,7 @@ async def create_my_project(
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
+    """Create a project attached to the current user's profile."""
     profile = get_profile_by_user_id(db, user_id)
     if not profile:
         profile = create_profile(db, user_id)
@@ -172,6 +183,7 @@ async def update_my_project(
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
+    """Patch a project that belongs to the current user's profile."""
     profile = get_profile_by_user_id(db, user_id)
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
@@ -192,6 +204,7 @@ async def delete_my_project(
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
+    """Delete a project that belongs to the current user's profile."""
     profile = get_profile_by_user_id(db, user_id)
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
@@ -205,6 +218,7 @@ async def delete_my_project(
 
 @app.get("/profiles/check-username/{username}", response_model=CheckUsernameResponse)
 async def check_username(username: str, db: Session = Depends(get_db)):
+    """Validate username format and report whether it is still available."""
     if not re.match(r'^[a-zA-Z0-9_-]{3,30}$', username):
         raise HTTPException(status_code=422, detail="Invalid username format")
     available = not is_username_taken(db, username)

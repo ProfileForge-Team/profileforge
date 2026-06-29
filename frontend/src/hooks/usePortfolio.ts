@@ -20,6 +20,7 @@ type AuthContext = {
 };
 
 function useAuthContext(): AuthContext {
+  /** Reads auth state once per hook call so query functions can refresh tokens. */
   return {
     token: useAuthStore((state) => state.token),
     refreshToken: useAuthStore((state) => state.refreshToken),
@@ -32,6 +33,7 @@ async function withTokenRefresh<T>(
   auth: AuthContext,
   operation: (token: string | null) => Promise<T>
 ): Promise<T> {
+  /** Retries one protected operation after refreshing an expired access token. */
   try {
     return await operation(auth.token);
   } catch (error) {
@@ -51,6 +53,7 @@ async function withTokenRefresh<T>(
 }
 
 export function useProfile(enabled = true) {
+  /** Loads the editable profile for the current authenticated user. */
   const auth = useAuthContext();
   return useQuery({
     queryKey: portfolioKeys.profile,
@@ -60,6 +63,7 @@ export function useProfile(enabled = true) {
 }
 
 export function useSite(enabled = true) {
+  /** Loads the current site with blocks and projects for editor/public views. */
   const auth = useAuthContext();
   return useQuery({
     queryKey: portfolioKeys.site,
@@ -69,6 +73,7 @@ export function useSite(enabled = true) {
 }
 
 export function useProjects(enabled = true) {
+  /** Loads portfolio projects with local public-page selection state applied. */
   const auth = useAuthContext();
   return useQuery({
     queryKey: portfolioKeys.projects,
@@ -78,10 +83,12 @@ export function useProjects(enabled = true) {
 }
 
 export function useTemplates() {
+  /** Loads the list of templates available for portfolio rendering. */
   return useQuery({ queryKey: portfolioKeys.templates, queryFn: () => api.getTemplates() });
 }
 
 export function useDashboardSummary() {
+  /** Loads aggregated dashboard readiness data through API Gateway. */
   const auth = useAuthContext();
   return useQuery({
     queryKey: portfolioKeys.dashboard,
@@ -90,6 +97,7 @@ export function useDashboardSummary() {
 }
 
 export function usePublicPortfolio(slug?: string) {
+  /** Loads a read-only public portfolio by username or slug. */
   return useQuery({
     queryKey: portfolioKeys.publicPortfolio(slug ?? ''),
     queryFn: () => api.getPublicPortfolio(slug ?? ''),
@@ -98,6 +106,7 @@ export function usePublicPortfolio(slug?: string) {
 }
 
 export function useUpdateProfile() {
+  /** Updates profile data and refreshes dependent dashboard state. */
   const auth = useAuthContext();
   const queryClient = useQueryClient();
   return useMutation({
@@ -110,6 +119,7 @@ export function useUpdateProfile() {
 }
 
 export function useCreateProject() {
+  /** Creates a project and refreshes project/site/dashboard queries. */
   const auth = useAuthContext();
   const queryClient = useQueryClient();
   return useMutation({
@@ -123,6 +133,7 @@ export function useCreateProject() {
 }
 
 export function useToggleProjectSelection() {
+  /** Toggles whether a project is included in the public portfolio snapshot. */
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -139,6 +150,7 @@ export function useToggleProjectSelection() {
 }
 
 export function useUpdateSite() {
+  /** Updates site metadata such as slug or selected template. */
   const auth = useAuthContext();
   const queryClient = useQueryClient();
   return useMutation({
@@ -153,6 +165,7 @@ export function useUpdateSite() {
 }
 
 export function usePublishSite() {
+  /** Publishes the site and refreshes dashboard/site state. */
   const auth = useAuthContext();
   const queryClient = useQueryClient();
   return useMutation({

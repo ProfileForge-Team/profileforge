@@ -5,6 +5,7 @@ from app.core.errors import gateway_error
 
 
 def decode_access_token(token: str) -> dict:
+    """Decode an access token using gateway settings and convert failures to API errors."""
     try:
         return jwt.decode(
             token,
@@ -20,6 +21,7 @@ def decode_access_token(token: str) -> dict:
 
 
 def extract_bearer_token(authorization: str | None) -> str:
+    """Parse the Authorization header and return the bearer token value."""
     if not authorization:
         raise gateway_error(
             status_code=401,

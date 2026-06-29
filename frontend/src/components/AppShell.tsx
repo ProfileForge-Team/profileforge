@@ -13,6 +13,7 @@ const navigation = [
 ];
 
 export function AppShell({ children }: PropsWithChildren) {
+  /** Provides shared navigation, auth actions, and toast rendering around pages. */
   const [menuOpen, setMenuOpen] = useState(false);
   const [progress, setProgress] = useState(0);
   const glowRef = useRef<HTMLDivElement | null>(null);

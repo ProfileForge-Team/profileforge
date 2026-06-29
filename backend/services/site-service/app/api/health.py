@@ -8,21 +8,15 @@ router = APIRouter(tags=["health"])
 
 @router.get("/health")
 async def health():
-    """
-    Проверка, что сервис жив (процесс запущен и отвечает).
-    Не проверяет зависимости (БД, RabbitMQ) — это задача /ready.
-    """
+    """Return site-service liveness without checking external dependencies."""
     return {"status": "ok"}
 
 
 @router.get("/ready")
 async def ready():
-    """
-    Проверка готовности сервиса: подключение к БД (и в перспективе RabbitMQ).
-    """
+    """Check whether site-service can reach its database."""
     db_ok = await check_db_connection()
 
-    # TODO: добавить проверку RabbitMQ, когда появится publisher/consumer
     checks = {
         "database": "ok" if db_ok else "unavailable",
     }

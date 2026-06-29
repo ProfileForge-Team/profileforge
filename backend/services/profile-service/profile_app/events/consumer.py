@@ -11,6 +11,7 @@ logger = logging.getLogger("profile-service.consumer")
 
 
 async def handle_user_registered(message: dict) -> None:
+    """Create an empty profile once for each valid user.registered event."""
     event_id = message.get("event_id")
     event_type = message.get("event_type")
     payload = message.get("payload", {})

@@ -19,6 +19,7 @@ type GitHubRepository = {
 };
 
 function githubUsernameFromUrl(value: string | undefined): string | null {
+  /** Extracts a GitHub username from a URL or plain username input. */
   if (!value) return null;
 
   const trimmed = value.trim();
@@ -31,6 +32,7 @@ function githubUsernameFromUrl(value: string | undefined): string | null {
 }
 
 function repoTechnologies(repo: GitHubRepository): string[] {
+  /** Builds a compact unique technology list from language and repository topics. */
   return [
     repo.language,
     ...(repo.topics ?? [])
@@ -41,6 +43,7 @@ function repoTechnologies(repo: GitHubRepository): string[] {
 }
 
 async function fetchGitHubRepositories(username: string): Promise<GitHubRepository[]> {
+  /** Fetches up to 500 recent non-fork, non-archived repositories from GitHub. */
   const repositories: GitHubRepository[] = [];
 
   for (let page = 1; page <= 5; page += 1) {
@@ -63,6 +66,7 @@ async function fetchGitHubRepositories(username: string): Promise<GitHubReposito
 }
 
 function repoToProject(repo: GitHubRepository): Partial<PortfolioProject> {
+  /** Converts a GitHub repository response into a ProfileForge project draft. */
   return {
     title: repo.full_name,
     description: repo.description || `GitHub repository ${repo.full_name}.`,
@@ -74,6 +78,7 @@ function repoToProject(repo: GitHubRepository): Partial<PortfolioProject> {
 }
 
 export function PortfolioBuilderPage() {
+  /** Renders project import and selection controls for the public portfolio. */
   const queryClient = useQueryClient();
   const projects = useProjects().data ?? demoSite.projects;
   const profile = useProfile().data;

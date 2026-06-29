@@ -8,6 +8,7 @@ router = APIRouter()
 
 
 def _is_profile_completed(profile: dict) -> bool:
+    """Return True when the minimum dashboard profile fields are filled."""
     return all(
         profile.get(field)
         for field in ("username", "display_name", "headline")
@@ -16,6 +17,7 @@ def _is_profile_completed(profile: dict) -> bool:
 
 @router.get("/health")
 async def health():
+    """Expose a cheap liveness probe for Docker and local smoke checks."""
     return {
         "status": "ok",
         "service": settings.service_name,
@@ -24,6 +26,7 @@ async def health():
 
 @router.get("/ready")
 async def ready():
+    """Check downstream services and report whether the gateway can serve traffic."""
     auth = await check_service_ready(settings.auth_service_url)
     profile = await check_service_ready(settings.profile_service_url)
     site = await check_service_ready(settings.site_service_url)
@@ -46,6 +49,7 @@ async def ready():
 
 @router.get("/api/dashboard/summary")
 async def dashboard_summary(request: Request):
+    """Compose profile, project, and site state into one dashboard payload."""
     profile = await request_json(
         request=request,
         target_base_url=settings.profile_service_url,
@@ -91,6 +95,7 @@ async def dashboard_summary(request: Request):
     methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
 )
 async def proxy_auth(path: str, request: Request):
+    """Forward auth requests while allowing public register/login/refresh calls."""
     require_auth = path not in {"register", "login", "refresh"}
 
     return await proxy_request(
@@ -106,6 +111,7 @@ async def proxy_auth(path: str, request: Request):
     methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
 )
 async def proxy_profiles(path: str, request: Request):
+    """Forward protected profile requests with the current user context."""
     return await proxy_request(
         request=request,
         target_base_url=settings.profile_service_url,
@@ -119,6 +125,7 @@ async def proxy_profiles(path: str, request: Request):
     methods=["GET"],
 )
 async def proxy_site_templates(request: Request):
+    """Expose template metadata publicly so the frontend can render choices early."""
     return await proxy_request(
         request=request,
         target_base_url=settings.site_service_url,
@@ -132,6 +139,7 @@ async def proxy_site_templates(request: Request):
     methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
 )
 async def proxy_sites(path: str, request: Request):
+    """Forward protected site requests for site CRUD, blocks, preview, and publish."""
     return await proxy_request(
         request=request,
         target_base_url=settings.site_service_url,
@@ -145,6 +153,7 @@ async def proxy_sites(path: str, request: Request):
     methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
 )
 async def proxy_sites_root(request: Request):
+    """Forward protected root `/api/sites` calls used to create or list current sites."""
     return await proxy_request(
         request=request,
         target_base_url=settings.site_service_url,
@@ -158,6 +167,7 @@ async def proxy_sites_root(request: Request):
     methods=["GET"],
 )
 async def proxy_public(path: str, request: Request):
+    """Forward public portfolio reads without requiring an access token."""
     return await proxy_request(
         request=request,
         target_base_url=settings.site_service_url,

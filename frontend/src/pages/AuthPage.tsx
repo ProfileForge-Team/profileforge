@@ -15,6 +15,7 @@ const schema = z.object({
 type AuthForm = z.infer<typeof schema>;
 
 export function AuthPage() {
+  /** Handles login/register mode and stores the resulting auth session. */
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const navigate = useNavigate();
   const setSession = useAuthStore((state) => state.setSession);

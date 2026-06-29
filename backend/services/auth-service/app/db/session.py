@@ -17,6 +17,7 @@ SessionLocal = sessionmaker(
 
 
 def get_db():
+    """Yield one synchronous SQLAlchemy session for the current request."""
     db = SessionLocal()
 
     try:

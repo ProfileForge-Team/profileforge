@@ -22,6 +22,7 @@ router = APIRouter(tags=["sites"])
 
 
 def _block_to_out(block) -> SiteBlockOut:
+    """Convert a SQLAlchemy block model into the API response schema."""
     return SiteBlockOut(
         id=block.id,
         site_id=block.site_id,
@@ -39,6 +40,7 @@ async def create_site(
     user_id: str = Depends(get_current_user_id),
     service: SiteService = Depends(get_site_service),
 ):
+    """Create the authenticated user's editable portfolio site."""
     site = await service.create_site(user_id, data)
     return SiteOut.model_validate(site)
 
@@ -48,6 +50,7 @@ async def get_my_site(
     user_id: str = Depends(get_current_user_id),
     service: SiteService = Depends(get_site_service),
 ):
+    """Return the authenticated user's current site."""
     site = await service.get_my_site(user_id)
     return SiteOut.model_validate(site)
 
@@ -59,6 +62,7 @@ async def update_site(
     user_id: str = Depends(get_current_user_id),
     service: SiteService = Depends(get_site_service),
 ):
+    """Update title, slug, or selected template for an owned site."""
     site = await service.update_site(site_id, user_id, data)
     return SiteOut.model_validate(site)
 
@@ -67,6 +71,7 @@ async def update_site(
 async def list_templates(
     service: SiteService = Depends(get_site_service),
 ):
+    """Return all templates available to the frontend."""
     return await service.list_templates()
 
 
@@ -75,6 +80,7 @@ async def get_dashboard_summary(
     user_id: str = Depends(get_current_user_id),
     service: SiteService = Depends(get_site_service),
 ):
+    """Return site readiness details for dashboard aggregation."""
     return await service.get_dashboard_summary(user_id)
 
 
@@ -89,6 +95,7 @@ async def add_block(
     user_id: str = Depends(get_current_user_id),
     service: SiteService = Depends(get_site_service),
 ):
+    """Add a content block to an owned site."""
     block = await service.add_block(site_id, user_id, data)
     return _block_to_out(block)
 
@@ -99,6 +106,7 @@ async def list_blocks(
     user_id: str = Depends(get_current_user_id),
     service: SiteService = Depends(get_site_service),
 ):
+    """List content blocks for an owned site."""
     blocks = await service.list_blocks(site_id, user_id)
     return [_block_to_out(block) for block in blocks]
 
@@ -109,6 +117,7 @@ async def get_site_preview(
     user_id: str = Depends(get_current_user_id),
     service: SiteService = Depends(get_site_service),
 ):
+    """Return draft site data for the owner preview screen."""
     site, blocks = await service.get_preview(site_id, user_id)
     return SitePreviewOut(
         site=SiteOut.model_validate(site),
@@ -124,6 +133,7 @@ async def update_block(
     user_id: str = Depends(get_current_user_id),
     service: SiteService = Depends(get_site_service),
 ):
+    """Patch a block on an owned site."""
     block = await service.update_block(site_id, block_id, user_id, data)
     return _block_to_out(block)
 
@@ -137,6 +147,7 @@ async def delete_block(
     user_id: str = Depends(get_current_user_id),
     service: SiteService = Depends(get_site_service),
 ):
+    """Delete a block on an owned site."""
     await service.delete_block(site_id, block_id, user_id)
 
 
@@ -146,6 +157,7 @@ async def publish_site(
     user_id: str = Depends(get_current_user_id),
     service: SiteService = Depends(get_site_service),
 ):
+    """Publish an owned site and return the public URL metadata."""
     site = await service.publish_site(site_id, user_id)
     return SitePublishOut(
         site_id=site.id, status=site.status, public_url=site.public_url
@@ -157,6 +169,7 @@ async def get_public_site(
     slug: str,
     service: SiteService = Depends(get_site_service),
 ):
+    """Return published site data by slug without requiring authentication."""
     site, blocks = await service.get_public_site(slug)
     return PublicSiteOut(
         site_id=site.id,

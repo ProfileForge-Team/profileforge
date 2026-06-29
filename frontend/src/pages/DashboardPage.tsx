@@ -2,14 +2,17 @@ import { useNavigate } from 'react-router-dom';
 import { useDashboardSummary, useProfile, useProjects } from '../hooks/usePortfolio';
 
 function clampPercent(value: number): number {
+  /** Keeps the dashboard readiness indicator inside the 0..100 range. */
   return Math.max(0, Math.min(100, value));
 }
 
 function getFrontendOrigin(): string {
+  /** Returns the current frontend origin for local public resume links. */
   return typeof window === 'undefined' ? 'http://localhost:5173' : window.location.origin;
 }
 
 function makePublicHandle(value?: string): string | null {
+  /** Converts username-like input into the handle used by public resume routes. */
   const handle = (value ?? '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -20,6 +23,7 @@ function makePublicHandle(value?: string): string | null {
 }
 
 export function DashboardPage() {
+  /** Renders MVP readiness, publication status, and next-step navigation. */
   const navigate = useNavigate();
   const profileQuery = useProfile();
   const summaryQuery = useDashboardSummary();

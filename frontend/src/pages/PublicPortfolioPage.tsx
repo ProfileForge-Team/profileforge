@@ -30,22 +30,27 @@ const templateMeta: Record<string, TemplateView> = {
 };
 
 function normalizeExternalUrl(value: string): string {
+  /** Ensures external contact/project URLs include a protocol before navigation. */
   return /^https?:\/\//i.test(value) ? value : `https://${value}`;
 }
 
 function getLinkLabel(url: string): string {
+  /** Creates a compact display label for contact links. */
   return url.replace(/^https?:\/\//, '').replace(/^mailto:/, '');
 }
 
 function getTemplateView(template: TemplateKey): TemplateView {
+  /** Resolves template metadata used by the public portfolio renderer. */
   return templateMeta[template] ?? templateMeta.clean;
 }
 
 function getFrontendOrigin(): string {
+  /** Returns the current frontend origin for copyable public resume links. */
   return typeof window === 'undefined' ? 'http://localhost:5173' : window.location.origin;
 }
 
 function makePublicHandle(value?: string): string | null {
+  /** Converts username/slug input into the public resume route segment. */
   const handle = (value ?? '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -56,6 +61,7 @@ function makePublicHandle(value?: string): string | null {
 }
 
 function ProjectList({ projects }: { projects: PortfolioProject[] }) {
+  /** Renders selected public projects and opens repository/demo links on click. */
   if (!projects.length) {
     return (
       <article className="portfolio-empty">
@@ -111,6 +117,7 @@ type PublicPortfolioPageProps = {
 };
 
 export function PublicPortfolioPage({ readOnly = false }: PublicPortfolioPageProps) {
+  /** Renders either the editable public preview or a read-only resume page. */
   const navigate = useNavigate();
   const { slug } = useParams();
   const profileQuery = useProfile(!readOnly);

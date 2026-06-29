@@ -1,7 +1,6 @@
 import asyncio
 import json
 import logging
-import uuid
 from datetime import datetime, timezone
 
 import aio_pika
@@ -21,7 +20,7 @@ BATCH_SIZE = 20
 
 
 def build_event_envelope(event: OutboxEvent) -> dict:
-    """Единый формат события, см. п.5 ТЗ."""
+    """Build the shared event envelope published to RabbitMQ."""
     return {
         "event_id": event.event_id,
         "event_type": event.event_type,
@@ -32,11 +31,7 @@ def build_event_envelope(event: OutboxEvent) -> dict:
 
 
 async def publish_pending_events(db: AsyncSession) -> int:
-    """
-    Забирает события со status=pending, шлёт их в RabbitMQ,
-    помечает published или failed (с retry_count++).
-    Возвращает количество успешно опубликованных событий.
-    """
+    """Publish pending outbox events and mark them as published or failed."""
     result = await db.execute(
         select(OutboxEvent)
         .where(OutboxEvent.status == "pending")
@@ -57,7 +52,7 @@ async def publish_pending_events(db: AsyncSession) -> int:
         for event in pending_events:
             try:
                 envelope = build_event_envelope(event)
-                routing_key = event.event_type  # напр. "site.published"
+                routing_key = event.event_type
 
                 message = aio_pika.Message(
                     body=json.dumps(envelope).encode("utf-8"),
@@ -97,10 +92,7 @@ async def publish_pending_events(db: AsyncSession) -> int:
 
 
 async def outbox_publisher_loop() -> None:
-    """
-    Фоновый цикл: каждые POLL_INTERVAL_SECONDS секунд проверяет outbox
-    и публикует накопившиеся события. Запускается в startup-хуке main.py.
-    """
+    """Continuously poll the outbox table and publish accumulated events."""
     logger.info("Outbox publisher loop started")
     while True:
         try:

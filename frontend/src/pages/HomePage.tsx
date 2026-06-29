@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 
 export function HomePage() {
+  /** Renders the product landing screen and routes users into creation flows. */
   const navigate = useNavigate();
 
   return (

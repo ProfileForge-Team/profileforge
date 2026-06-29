@@ -23,6 +23,7 @@ HOP_BY_HOP_HEADERS = {
 
 
 def _build_headers(request: Request, require_auth: bool) -> dict[str, str]:
+    """Prepare upstream headers and inject user identity for protected routes."""
     headers = {
         key: value
         for key, value in request.headers.items()
@@ -51,6 +52,7 @@ async def proxy_request(
     target_path: str,
     require_auth: bool = False,
 ) -> Response:
+    """Proxy the incoming HTTP request to a downstream service unchanged where possible."""
     url = f"{target_base_url.rstrip('/')}/{target_path.lstrip('/')}"
 
     headers = _build_headers(request, require_auth=require_auth)
@@ -105,6 +107,7 @@ async def request_json(
     target_path: str,
     require_auth: bool = False,
 ) -> Any:
+    """Call a downstream GET endpoint and return parsed JSON for gateway composition."""
     url = f"{target_base_url.rstrip('/')}/{target_path.lstrip('/')}"
     headers = _build_headers(request, require_auth=require_auth)
 
@@ -146,6 +149,7 @@ async def request_json(
 
 
 async def check_service_ready(service_url: str) -> dict[str, Any]:
+    """Return normalized readiness information for one downstream service."""
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
             response = await client.get(f"{service_url.rstrip('/')}/ready")

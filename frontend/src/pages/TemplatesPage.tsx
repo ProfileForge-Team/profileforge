@@ -56,6 +56,7 @@ const templateDecor: Record<string, Pick<DecoratedTemplate, 'accent' | 'tags' | 
 };
 
 function decorateTemplate(template: TemplateOption): DecoratedTemplate {
+  /** Adds local visual metadata to backend template records. */
   const decor = templateDecor[template.key] ?? templateDecor.clean;
   return {
     ...template,
@@ -66,6 +67,7 @@ function decorateTemplate(template: TemplateOption): DecoratedTemplate {
 }
 
 export function TemplatesPage() {
+  /** Renders available templates and persists the selected site template. */
   const navigate = useNavigate();
   const site = useSite().data ?? demoSite;
   const templates = (useTemplates().data?.map(decorateTemplate) ?? fallbackTemplates);

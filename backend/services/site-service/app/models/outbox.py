@@ -1,22 +1,19 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, JSON, DateTime, Integer
+from sqlalchemy import DateTime, Integer, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
 
 
 def generate_uuid() -> str:
+    """Generate string UUID primary keys for SQLite-friendly models."""
     return str(uuid.uuid4())
 
 
 class OutboxEvent(Base):
-    """
-    Transactional Outbox (см. п. 4.1-4.3 ТЗ).
-    Событие пишется в той же транзакции, что и основные данные.
-    Отдельный publisher забирает события со status=pending и шлёт в RabbitMQ.
-    """
+    """Transactional outbox event waiting to be published to RabbitMQ."""
 
     __tablename__ = "outbox_events"
 
@@ -36,10 +33,7 @@ class OutboxEvent(Base):
 
 
 class ProcessedEvent(Base):
-    """
-    Inbox для идемпотентности consumer'а (см. п. 4.4 ТЗ).
-    Перед обработкой события проверяем event_id здесь — если есть, пропускаем.
-    """
+    """Inbox record used to keep event consumers idempotent."""
 
     __tablename__ = "processed_events"
 

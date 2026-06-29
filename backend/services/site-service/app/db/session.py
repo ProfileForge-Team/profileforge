@@ -9,7 +9,7 @@ from app.core.config import settings
 
 
 class Base(DeclarativeBase):
-    """Базовый класс для всех моделей SQLAlchemy."""
+    """Base class for all SQLAlchemy models in site-service."""
     pass
 
 
@@ -27,13 +27,13 @@ AsyncSessionLocal = async_sessionmaker(
 
 
 async def get_db():
-    """Dependency для FastAPI: выдаёт сессию БД на запрос."""
+    """Yield one async database session for the current FastAPI request."""
     async with AsyncSessionLocal() as session:
         yield session
 
 
 async def check_db_connection() -> bool:
-    """Используется в /ready — проверяет, что БД доступна."""
+    """Return True when the database connection can be opened."""
     try:
         async with engine.connect() as conn:
             await conn.run_sync(lambda _: None)

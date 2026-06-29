@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 
 
 class AppError(Exception):
-    """Базовое исключение приложения. code соответствует словарю из п.9 ТЗ."""
+    """Base application exception converted into the shared API error shape."""
 
     status_code: int = status.HTTP_400_BAD_REQUEST
     code: str = "VALIDATION_ERROR"
@@ -40,6 +40,7 @@ class ValidationAppError(AppError):
 
 
 async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
+    """Convert domain exceptions into normalized JSON API errors."""
     details = {"field": exc.field} if exc.field else None
     return JSONResponse(
         status_code=exc.status_code,

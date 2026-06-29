@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useUiStore } from '../stores/uiStore';
 
 export function Toast() {
+  /** Displays the latest global toast message from the UI store. */
   const toast = useUiStore((state) => state.toast);
   const clearToast = useUiStore((state) => state.clearToast);
 

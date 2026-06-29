@@ -43,11 +43,13 @@ AVAILABLE_TEMPLATES = [
 
 class SiteService:
     def __init__(self, db, sites: SiteRepository, outbox: OutboxRepository):
+        """Keep database and repository dependencies in one service boundary."""
         self.db = db
         self.sites = sites
         self.outbox = outbox
 
     async def create_site(self, owner_user_id: str, data: SiteCreate) -> Site:
+        """Create the single MVP portfolio site owned by a user."""
         existing_for_owner = await self.sites.get_by_owner(owner_user_id)
         if existing_for_owner is not None:
             # MVP-режим: один пользователь = один сайт (п. 7.6 ТЗ)
@@ -73,15 +75,18 @@ class SiteService:
         return site
 
     async def get_my_site(self, owner_user_id: str) -> Site:
+        """Return the current user's site or raise a domain-level not found error."""
         site = await self.sites.get_by_owner(owner_user_id)
         if site is None:
             raise NotFoundError("Сайт не найден")
         return site
 
     async def list_templates(self) -> list[dict]:
+        """Return template metadata used by the frontend template picker."""
         return AVAILABLE_TEMPLATES
 
     async def get_dashboard_summary(self, owner_user_id: str) -> dict:
+        """Return site readiness information for the dashboard page."""
         site = await self.sites.get_by_owner(owner_user_id)
         if site is None:
             return {
@@ -109,6 +114,7 @@ class SiteService:
     async def update_site(
         self, site_id: str, owner_user_id: str, data: SiteUpdate
     ) -> Site:
+        """Update editable site metadata such as title, slug, or template."""
         site = await self._get_owned_site(site_id, owner_user_id)
 
         if data.title is not None:
@@ -131,6 +137,7 @@ class SiteService:
     async def add_block(
         self, site_id: str, owner_user_id: str, data: SiteBlockCreate
     ) -> SiteBlock:
+        """Create a content block on a site owned by the current user."""
         await self._get_owned_site(site_id, owner_user_id)
 
         block = SiteBlock(
@@ -145,12 +152,14 @@ class SiteService:
         return block
 
     async def list_blocks(self, site_id: str, owner_user_id: str) -> list[SiteBlock]:
+        """List ordered blocks for an owned site."""
         await self._get_owned_site(site_id, owner_user_id)
         return await self.sites.list_blocks(site_id)
 
     async def get_preview(
         self, site_id: str, owner_user_id: str
     ) -> tuple[Site, list[SiteBlock]]:
+        """Return an unpublished preview payload for the site owner."""
         site = await self._get_owned_site(site_id, owner_user_id)
         blocks = await self.sites.list_blocks(site_id)
         return site, blocks
@@ -158,6 +167,7 @@ class SiteService:
     async def update_block(
         self, site_id: str, block_id: str, owner_user_id: str, data: SiteBlockUpdate
     ) -> SiteBlock:
+        """Patch an existing content block after verifying ownership."""
         await self._get_owned_site(site_id, owner_user_id)
         block = await self.sites.get_block(site_id, block_id)
         if block is None:
@@ -173,6 +183,7 @@ class SiteService:
         return block
 
     async def delete_block(self, site_id: str, block_id: str, owner_user_id: str) -> None:
+        """Delete an owned site block."""
         await self._get_owned_site(site_id, owner_user_id)
         block = await self.sites.get_block(site_id, block_id)
         if block is None:
@@ -182,6 +193,7 @@ class SiteService:
         await self.db.commit()
 
     async def publish_site(self, site_id: str, owner_user_id: str) -> Site:
+        """Validate required blocks, publish the site, and enqueue a publish event."""
         site = await self._get_owned_site(site_id, owner_user_id)
         blocks = await self.sites.list_blocks(site_id)
         block_types = {b.type for b in blocks}
@@ -215,6 +227,7 @@ class SiteService:
         return site
 
     async def get_public_site(self, slug: str) -> tuple[Site, list[SiteBlock]]:
+        """Return published site data by slug for read-only public rendering."""
         site = await self.sites.get_by_slug(slug)
         if site is None or site.status != "published":
             raise NotFoundError("Сайт не найден")
@@ -223,6 +236,7 @@ class SiteService:
         return site, blocks
 
     async def _get_owned_site(self, site_id: str, owner_user_id: str) -> Site:
+        """Load a site and enforce that the current user owns it."""
         site = await self.sites.get_by_id(site_id)
         if site is None:
             raise NotFoundError("Сайт не найден")

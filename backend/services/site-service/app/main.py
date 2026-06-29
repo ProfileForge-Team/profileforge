@@ -25,6 +25,7 @@ _publisher_task: asyncio.Task | None = None
 
 @app.on_event("startup")
 async def on_startup():
+    """Start the background outbox publisher when site-service boots."""
     global _publisher_task
     logger.info(f"{settings.SERVICE_NAME} starting up")
     _publisher_task = asyncio.create_task(outbox_publisher_loop())
@@ -32,6 +33,7 @@ async def on_startup():
 
 @app.on_event("shutdown")
 async def on_shutdown():
+    """Cancel background tasks and close RabbitMQ before shutdown completes."""
     global _publisher_task
     logger.info(f"{settings.SERVICE_NAME} shutting down")
     if _publisher_task is not None:

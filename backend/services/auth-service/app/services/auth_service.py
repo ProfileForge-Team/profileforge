@@ -16,6 +16,7 @@ from app.models.user import User
 class AuthService:
     @staticmethod
     def register_user(db: Session, email: str, password: str) -> User:
+        """Create a user and enqueue the registration event in the same transaction."""
         existing_user = db.query(User).filter(User.email == email).first()
 
         if existing_user:
@@ -88,6 +89,7 @@ class AuthService:
 
     @staticmethod
     def _build_token_pair(user_id: str) -> dict[str, str]:
+        """Create the access/refresh token pair returned to the frontend."""
         return {
             "access_token": create_access_token(subject=user_id),
             "refresh_token": create_refresh_token(subject=user_id),
@@ -95,6 +97,7 @@ class AuthService:
 
     @staticmethod
     def login_user(db: Session, email: str, password: str) -> dict[str, str]:
+        """Validate credentials and return a fresh token pair for an active user."""
         user = db.query(User).filter(User.email == email).first()
 
         if not user:
@@ -134,6 +137,7 @@ class AuthService:
 
     @staticmethod
     def refresh_tokens(db: Session, refresh_token: str) -> dict[str, str]:
+        """Rotate an existing refresh token into a new access/refresh pair."""
         try:
             payload = decode_refresh_token(refresh_token)
         except Exception:

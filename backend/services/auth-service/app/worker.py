@@ -10,10 +10,12 @@ from app.models.outbox_event import OutboxEvent
 
 
 def utc_now():
+    """Return the current UTC time for outbox timestamps."""
     return datetime.now(timezone.utc)
 
 
 async def publish_event_to_rabbitmq(exchange, event: OutboxEvent):
+    """Publish one auth outbox event to the configured RabbitMQ exchange."""
     message_body = {
         "event_id": event.event_id,
         "event_type": event.event_type,
@@ -35,6 +37,7 @@ async def publish_event_to_rabbitmq(exchange, event: OutboxEvent):
 
 
 async def process_outbox_batch():
+    """Publish one batch of pending auth outbox events."""
     db = SessionLocal()
 
     connection = None
@@ -93,6 +96,7 @@ async def process_outbox_batch():
 
 
 async def run_worker():
+    """Run the auth outbox worker loop forever."""
     print("Auth outbox worker started")
 
     while True:

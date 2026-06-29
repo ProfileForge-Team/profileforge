@@ -24,6 +24,7 @@ const profileSchema = z.object({
 type ProfileForm = z.infer<typeof profileSchema>;
 
 function toForm(profile: typeof demoProfile): ProfileForm {
+  /** Converts the domain profile into form default values. */
   return {
     username: profile.username,
     displayName: profile.displayName,
@@ -39,6 +40,7 @@ function toForm(profile: typeof demoProfile): ProfileForm {
 }
 
 export function ProfileEditorPage() {
+  /** Renders the editable profile form and a live profile preview. */
   const profileQuery = useProfile();
   const profile = profileQuery.data ?? demoProfile;
   const updateProfile = useUpdateProfile();

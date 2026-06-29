@@ -8,6 +8,7 @@ import uuid
 
 
 def get_profile_by_user_id(db: Session, user_id: str) -> Profile | None:
+    """Load a profile by auth user id with relationships ready for serialization."""
     profile = db.query(Profile).filter(Profile.user_id == user_id).first()
     if profile:
         _ = profile.social_links  # подгружаем соцсети, пока сессия открыта
@@ -16,6 +17,7 @@ def get_profile_by_user_id(db: Session, user_id: str) -> Profile | None:
 
 
 def create_profile(db: Session, user_id: str) -> Profile:
+    """Create the empty profile used immediately after registration."""
     profile = Profile(
         id=str(uuid.uuid4()),
         user_id=user_id
@@ -29,6 +31,7 @@ def create_profile(db: Session, user_id: str) -> Profile:
 
 
 def update_profile(db: Session, profile: Profile, update_data: ProfileUpdate) -> Profile:
+    """Update profile fields, replace social links, and enqueue profile.updated."""
     data = update_data.model_dump(exclude_unset=True, exclude={"social_links"})
     for key, value in data.items():
         setattr(profile, key, value)
@@ -75,6 +78,7 @@ def update_profile(db: Session, profile: Profile, update_data: ProfileUpdate) ->
 
 
 def get_profile_by_username(db: Session, username: str) -> Profile | None:
+    """Load a public profile by username with relationships ready for output."""
     profile = db.query(Profile).filter(Profile.username == username).first()
     if profile:
         _ = profile.social_links
@@ -83,6 +87,7 @@ def get_profile_by_username(db: Session, username: str) -> Profile | None:
 
 
 def is_username_taken(db: Session, username: str, exclude_user_id: str | None = None) -> bool:
+    """Check username uniqueness, optionally ignoring the current user."""
     query = db.query(Profile).filter(Profile.username == username)
     if exclude_user_id:
         query = query.filter(Profile.user_id != exclude_user_id)
@@ -90,6 +95,7 @@ def is_username_taken(db: Session, username: str, exclude_user_id: str | None = 
 
 
 def list_projects(db: Session, profile: Profile) -> list[Project]:
+    """List projects in the order expected by the portfolio UI."""
     return (
         db.query(Project)
         .filter(Project.profile_id == profile.id)
@@ -99,6 +105,7 @@ def list_projects(db: Session, profile: Profile) -> list[Project]:
 
 
 def get_project(db: Session, profile: Profile, project_id: str) -> Project | None:
+    """Load one project only if it belongs to the given profile."""
     return (
         db.query(Project)
         .filter(Project.id == project_id, Project.profile_id == profile.id)
@@ -107,6 +114,7 @@ def get_project(db: Session, profile: Profile, project_id: str) -> Project | Non
 
 
 def create_project(db: Session, profile: Profile, project_data: ProjectCreate) -> Project:
+    """Persist a new project for the given profile."""
     data = project_data.model_dump()
     project = Project(
         id=str(uuid.uuid4()),
@@ -123,6 +131,7 @@ def create_project(db: Session, profile: Profile, project_data: ProjectCreate) -
 def update_project(
     db: Session, project: Project, project_data: ProjectUpdate
 ) -> Project:
+    """Patch project fields while normalizing missing tag lists."""
     data = project_data.model_dump(exclude_unset=True)
     if "tags" in data and data["tags"] is None:
         data["tags"] = []
@@ -136,5 +145,6 @@ def update_project(
 
 
 def delete_project(db: Session, project: Project) -> None:
+    """Remove a project from the profile."""
     db.delete(project)
     db.commit()

@@ -5,4 +5,5 @@ from app.db.session import engine
 
 
 def init_db():
+    """Create auth-service tables for local MVP startup."""
     Base.metadata.create_all(bind=engine)

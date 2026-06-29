@@ -10,6 +10,7 @@ router = APIRouter(tags=["Health"])
 
 @router.get("/health")
 def health():
+    """Return auth-service liveness without checking dependencies."""
     return {
         "status": "ok",
         "service": settings.service_name,
@@ -18,6 +19,7 @@ def health():
 
 @router.get("/ready")
 def ready():
+    """Check auth-service database readiness."""
     db_status = "error"
 
     try:

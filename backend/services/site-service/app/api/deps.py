@@ -8,6 +8,7 @@ from app.services.site_service import SiteService
 
 
 def get_site_service(db: AsyncSession = Depends(get_db)) -> SiteService:
+    """Build the SiteService dependency with request-scoped repositories."""
     sites = SiteRepository(db)
     outbox = OutboxRepository(db)
     return SiteService(db, sites, outbox)

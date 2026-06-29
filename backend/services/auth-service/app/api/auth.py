@@ -23,6 +23,7 @@ def register(
     request: RegisterRequest,
     db: Session = Depends(get_db),
 ):
+    """Register a new user and return the created user without logging in yet."""
     user = AuthService.register_user(
         db=db,
         email=request.email,
@@ -44,6 +45,7 @@ def login(
     request: LoginRequest,
     db: Session = Depends(get_db),
 ):
+    """Exchange valid credentials for an access/refresh token pair."""
     tokens = AuthService.login_user(
         db=db,
         email=request.email,
@@ -58,6 +60,7 @@ def refresh(
     request: RefreshTokenRequest,
     db: Session = Depends(get_db),
 ):
+    """Exchange a refresh token for a new access/refresh token pair."""
     tokens = AuthService.refresh_tokens(
         db=db,
         refresh_token=request.refresh_token,
@@ -70,6 +73,7 @@ def refresh(
 def get_me(
     current_user: User = Depends(get_current_user),
 ):
+    """Return the user represented by the current access token."""
     return UserResponse(
         id=current_user.id,
         email=current_user.email,

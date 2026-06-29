@@ -14,10 +14,7 @@ _connection: AbstractRobustConnection | None = None
 
 
 async def get_rabbitmq_connection() -> AbstractRobustConnection:
-    """
-    Возвращает (и при необходимости создаёт) robust-подключение к RabbitMQ.
-    Robust-подключение само переподключается при обрыве сети.
-    """
+    """Return a cached robust RabbitMQ connection, creating it on first use."""
     global _connection
     if _connection is None or _connection.is_closed:
         logger.info("Connecting to RabbitMQ")
@@ -26,13 +23,14 @@ async def get_rabbitmq_connection() -> AbstractRobustConnection:
 
 
 async def get_events_exchange(channel: aio_pika.abc.AbstractChannel):
-    """Topic-exchange, в который publisher шлёт события site-service.*"""
+    """Declare the topic exchange used by service event publishers."""
     return await channel.declare_exchange(
         EXCHANGE_NAME, ExchangeType.TOPIC, durable=True
     )
 
 
 async def close_rabbitmq_connection() -> None:
+    """Close the cached RabbitMQ connection during application shutdown."""
     global _connection
     if _connection is not None and not _connection.is_closed:
         await _connection.close()

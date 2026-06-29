@@ -1,21 +1,19 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, Integer, String, JSON, DateTime, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
 
 
 def generate_uuid() -> str:
+    """Generate string UUID primary keys for SQLite-friendly models."""
     return str(uuid.uuid4())
 
 
 class Site(Base):
-    """
-    Сайт-резюме пользователя.
-    Для MVP: один пользователь = один сайт (см. п. 7.6 ТЗ).
-    """
+    """Editable portfolio site owned by one user in the MVP."""
 
     __tablename__ = "sites"
     __table_args__ = (
@@ -46,10 +44,7 @@ class Site(Base):
 
 
 class SiteBlock(Base):
-    """
-    Блок резюме (about, skills, experience, projects, education, achievements, contacts).
-    Контент хранится как JSON (в SQLite — через TEXT-сериализацию, см. п. 7.3 ТЗ).
-    """
+    """Structured content block rendered on draft previews and public pages."""
 
     __tablename__ = "site_blocks"
 

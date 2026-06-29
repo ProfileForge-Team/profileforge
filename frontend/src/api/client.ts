@@ -127,26 +127,32 @@ export class ApiError extends Error {
   }
 }
 
+/** Deep-clones demo data so mock mode never mutates shared constants. */
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+/** Checks whether an unknown value is a plain object that can be safely read. */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
+/** Reads a string from untrusted API content and falls back when missing. */
 function readString(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback;
 }
 
+/** Reads a non-empty optional string from untrusted API content. */
 function readOptionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value ? value : undefined;
 }
 
+/** Reads a string array from untrusted API content. */
 function readStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 }
 
+/** Loads or initializes the localStorage-backed demo mode state. */
 function getDemoState(): DemoState {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (raw) {
@@ -166,10 +172,12 @@ function getDemoState(): DemoState {
   return initial;
 }
 
+/** Persists demo mode state to localStorage. */
 function saveDemoState(next: DemoState): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 }
 
+/** Reads the local project selection set used by the public portfolio snapshot. */
 function readSelectedProjectIds(): Set<string> | null {
   const raw = localStorage.getItem(PROJECT_SELECTION_KEY);
   if (!raw) return null;
@@ -183,10 +191,12 @@ function readSelectedProjectIds(): Set<string> | null {
   }
 }
 
+/** Persists project ids selected for the public portfolio. */
 function writeSelectedProjectIds(ids: Iterable<string>): void {
   localStorage.setItem(PROJECT_SELECTION_KEY, JSON.stringify([...ids]));
 }
 
+/** Builds the active selection set from localStorage or current project flags. */
 function selectedIdsFromProjects(projects: PortfolioProject[]): Set<string> {
   const stored = readSelectedProjectIds();
   if (stored) return stored;
@@ -194,6 +204,7 @@ function selectedIdsFromProjects(projects: PortfolioProject[]): Set<string> {
   return new Set(projects.filter((project) => project.selected).map((project) => project.id));
 }
 
+/** Applies the saved project selection state to a project list. */
 function applyProjectSelection(projects: PortfolioProject[]): PortfolioProject[] {
   const stored = readSelectedProjectIds();
   if (!stored) return projects.map((project) => ({ ...project, selected: true }));
@@ -201,15 +212,18 @@ function applyProjectSelection(projects: PortfolioProject[]): PortfolioProject[]
   return projects.map((project) => ({ ...project, selected: stored.has(project.id) }));
 }
 
+/** Detects the old placeholder import card so it does not leak into real UI. */
 function isDemoImportProject(project: PortfolioProject): boolean {
   return project.title === 'GitHub Portfolio Import'
     && project.repositoryUrl === 'https://github.com/';
 }
 
+/** Removes the old placeholder import card from project lists. */
 function removeDemoImportProject(projects: PortfolioProject[]): PortfolioProject[] {
   return projects.filter((project) => !isDemoImportProject(project));
 }
 
+/** Supports both raw backend payloads and `{ data }` wrapped payloads. */
 function unwrap<T>(payload: unknown): T {
   if (payload && typeof payload === 'object' && 'data' in payload) {
     return (payload as { data: T }).data;
@@ -217,6 +231,7 @@ function unwrap<T>(payload: unknown): T {
   return payload as T;
 }
 
+/** Normalizes backend error shapes into a user-facing message. */
 function getErrorMessage(body: unknown): string {
   if (!body || typeof body !== 'object') return 'Could not reach API Gateway.';
 
@@ -239,6 +254,7 @@ function getErrorMessage(body: unknown): string {
   return 'Could not reach API Gateway.';
 }
 
+/** Sends a request through API Gateway and throws ApiError for non-2xx responses. */
 async function request<T>(path: string, options: RequestInit = {}, token?: string | null): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
@@ -259,10 +275,12 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
   return unwrap<T>(body);
 }
 
+/** Converts an auth-service user DTO into the frontend domain user. */
 function normalizeUser(user: BackendUser): User {
   return { id: user.id, email: user.email };
 }
 
+/** Converts snake_case backend token fields into frontend camelCase fields. */
 function normalizeSessionTokens(tokens: BackendToken | SessionTokens): SessionTokens {
   if ('access_token' in tokens) {
     return {
@@ -274,12 +292,14 @@ function normalizeSessionTokens(tokens: BackendToken | SessionTokens): SessionTo
   return tokens;
 }
 
+/** Builds a full frontend session by loading the current user after token creation. */
 async function buildGatewaySession(tokens: BackendToken | SessionTokens): Promise<AuthSession> {
   const normalizedTokens = normalizeSessionTokens(tokens);
   const user = await request<BackendUser>('/api/auth/me', {}, normalizedTokens.accessToken);
   return { ...normalizedTokens, user: normalizeUser(user) };
 }
 
+/** Creates a fake session for local mock mode. */
 function buildDemoSession(email: string): AuthSession {
   const state = getDemoState();
   const next = { ...state, user: { ...state.user, email } };
@@ -291,6 +311,7 @@ function buildDemoSession(email: string): AuthSession {
   };
 }
 
+/** Converts backend social link rows into the frontend profile links object. */
 function linksFromBackend(links: BackendSocialLink[] | null | undefined): Profile['links'] {
   return (links ?? []).reduce<Profile['links']>((acc, link) => {
     if (link.type === 'github' || link.type === 'telegram' || link.type === 'linkedin' || link.type === 'email') {
@@ -300,6 +321,7 @@ function linksFromBackend(links: BackendSocialLink[] | null | undefined): Profil
   }, {});
 }
 
+/** Converts frontend profile links into backend social link rows. */
 function linksToBackend(links: Profile['links'] | undefined): BackendSocialLink[] | undefined {
   if (!links) return undefined;
   return Object.entries(links)
@@ -307,6 +329,7 @@ function linksToBackend(links: Profile['links'] | undefined): BackendSocialLink[
     .map(([type, url]) => ({ type, url: String(url) }));
 }
 
+/** Converts profile-service DTOs into the frontend profile model. */
 function normalizeProfile(profile: BackendProfile): Profile {
   return {
     userId: profile.user_id ?? profile.id,
@@ -320,6 +343,7 @@ function normalizeProfile(profile: BackendProfile): Profile {
   };
 }
 
+/** Converts a frontend profile patch into profile-service field names. */
 function profilePatchToBackend(patch: Partial<Profile>): Partial<BackendProfile> {
   return {
     username: patch.username,
@@ -332,6 +356,7 @@ function profilePatchToBackend(patch: Partial<Profile>): Partial<BackendProfile>
   };
 }
 
+/** Converts a profile-service project DTO into a frontend project card. */
 function normalizeProject(project: BackendProject): PortfolioProject {
   return {
     id: project.id,
@@ -345,6 +370,7 @@ function normalizeProject(project: BackendProject): PortfolioProject {
   };
 }
 
+/** Converts a frontend project patch/create payload into backend field names. */
 function projectToBackend(project: Partial<PortfolioProject>, position = 0): Partial<BackendProject> {
   return {
     title: project.title,
@@ -356,6 +382,7 @@ function projectToBackend(project: Partial<PortfolioProject>, position = 0): Par
   };
 }
 
+/** Maps site-service template ids to frontend template keys. */
 function siteTemplateFromBackend(templateId: string): TemplateKey {
   const map: Record<string, TemplateKey> = {
     default: 'clean',
@@ -366,6 +393,7 @@ function siteTemplateFromBackend(templateId: string): TemplateKey {
   return map[templateId] ?? (templateId as TemplateKey);
 }
 
+/** Maps frontend template keys back to site-service template ids. */
 function siteTemplateToBackend(template: TemplateKey | undefined): string | undefined {
   if (!template) return undefined;
   const map: Record<TemplateKey, string> = {
@@ -381,6 +409,7 @@ function siteTemplateToBackend(template: TemplateKey | undefined): string | unde
   return map[template];
 }
 
+/** Returns a default display title for a site block type. */
 function blockTitle(type: SiteBlockType): string {
   const map: Record<SiteBlockType, string> = {
     about: 'About',
@@ -394,6 +423,7 @@ function blockTitle(type: SiteBlockType): string {
   return map[type];
 }
 
+/** Converts a site-service block DTO into a frontend block model. */
 function normalizeBlock(block: BackendBlock): SiteBlock {
   return {
     id: block.id,
@@ -405,6 +435,7 @@ function normalizeBlock(block: BackendBlock): SiteBlock {
   };
 }
 
+/** Combines site metadata, blocks, and projects into one frontend site model. */
 function normalizeSite(site: BackendSite, blocks: BackendBlock[] = [], projects: PortfolioProject[] = []): Site {
   return {
     id: site.id,
@@ -419,6 +450,7 @@ function normalizeSite(site: BackendSite, blocks: BackendBlock[] = [], projects:
   };
 }
 
+/** Converts backend template metadata into a frontend template card. */
 function normalizeTemplate(template: BackendTemplate): TemplateOption {
   const key = siteTemplateFromBackend(template.id);
   const imageByKey: Record<string, string> = {
@@ -436,6 +468,7 @@ function normalizeTemplate(template: BackendTemplate): TemplateOption {
   };
 }
 
+/** Converts a frontend site patch into site-service field names. */
 function sitePatchToBackend(patch: Partial<Site>): Partial<BackendSite> {
   return {
     title: patch.title,
@@ -444,6 +477,7 @@ function sitePatchToBackend(patch: Partial<Site>): Partial<BackendSite> {
   };
 }
 
+/** Creates a URL-safe profile slug from username-like input. */
 function makeSlug(value: string | undefined): string {
   const slug = (value || `profile-${Date.now()}`)
     .toLowerCase()
@@ -454,6 +488,7 @@ function makeSlug(value: string | undefined): string {
   return slug.length >= 3 ? slug : `profile-${slug}`.slice(0, 50);
 }
 
+/** Loads the current site or creates the MVP default site on first use. */
 async function getOrCreateSite(token?: string | null): Promise<BackendSite> {
   try {
     return await request<BackendSite>('/api/sites/me', {}, token);
@@ -472,10 +507,12 @@ async function getOrCreateSite(token?: string | null): Promise<BackendSite> {
   }, token);
 }
 
+/** Loads all blocks for a site through API Gateway. */
 async function getBlocks(siteId: string, token?: string | null): Promise<BackendBlock[]> {
   return request<BackendBlock[]>(`/api/sites/${encodeURIComponent(siteId)}/blocks`, {}, token);
 }
 
+/** Creates or updates one public snapshot block by block type. */
 async function upsertSiteBlock(
   site: Site,
   type: SiteBlockType,
@@ -500,6 +537,7 @@ async function upsertSiteBlock(
   }, token);
 }
 
+/** Syncs profile, selected projects, skills, and contacts into site blocks. */
 async function syncPublicSnapshotBlocks(site: Site, profile: Profile, token?: string | null): Promise<void> {
   const selectedProjects = site.projects.filter((project) => project.selected);
 
@@ -534,6 +572,7 @@ async function syncPublicSnapshotBlocks(site: Site, profile: Profile, token?: st
   }, token);
 }
 
+/** Reads contact links from public block content. */
 function readLinks(value: unknown): Profile['links'] {
   if (!isRecord(value)) return {};
 
@@ -545,10 +584,12 @@ function readLinks(value: unknown): Profile['links'] {
   };
 }
 
+/** Finds content for one block type in a public portfolio payload. */
 function publicContentByType(publicSite: BackendPublicSite, type: SiteBlockType): PublicBlockContent {
   return publicSite.blocks.find((block) => block.type === type)?.content ?? {};
 }
 
+/** Reads selected public projects from a published site block. */
 function readPublicProjects(value: unknown): PortfolioProject[] {
   if (!Array.isArray(value)) return [];
 
@@ -564,6 +605,7 @@ function readPublicProjects(value: unknown): PortfolioProject[] {
   }));
 }
 
+/** Rebuilds the read-only profile model from published site blocks. */
 function publicProfileFromBlocks(publicSite: BackendPublicSite): Profile {
   const about = publicContentByType(publicSite, 'about');
   const skills = publicContentByType(publicSite, 'skills');
@@ -590,6 +632,7 @@ function publicProfileFromBlocks(publicSite: BackendPublicSite): Profile {
 export const api = {
   mode: USE_MOCK_API ? 'demo' : 'gateway',
 
+  /** Authenticates a user and returns a hydrated frontend session. */
   async login(input: { email: string; password: string }): Promise<AuthSession> {
     if (USE_MOCK_API) return buildDemoSession(input.email);
     const token = await request<BackendToken>('/api/auth/login', {
@@ -599,6 +642,7 @@ export const api = {
     return buildGatewaySession(token);
   },
 
+  /** Registers a user and immediately logs in with the same credentials. */
   async register(input: { email: string; password: string }): Promise<AuthSession> {
     if (USE_MOCK_API) return buildDemoSession(input.email);
     await request('/api/auth/register', {
@@ -608,11 +652,13 @@ export const api = {
     return this.login(input);
   },
 
+  /** Loads the current auth user from the active access token. */
   async getCurrentUser(token?: string | null): Promise<User> {
     if (USE_MOCK_API) return getDemoState().user;
     return normalizeUser(await request<BackendUser>('/api/auth/me', {}, token));
   },
 
+  /** Refreshes an expired access token and returns the replacement session. */
   async refreshSession(refreshToken: string): Promise<AuthSession> {
     if (USE_MOCK_API) return buildDemoSession(getDemoState().user.email);
     const token = await request<BackendToken>('/api/auth/refresh', {
@@ -622,11 +668,13 @@ export const api = {
     return buildGatewaySession(token);
   },
 
+  /** Loads the editable profile for the current user. */
   async getProfile(token?: string | null): Promise<Profile> {
     if (USE_MOCK_API) return clone(getDemoState().profile);
     return normalizeProfile(await request<BackendProfile>('/api/profiles/me', {}, token));
   },
 
+  /** Updates editable profile fields for the current user. */
   async updateProfile(patch: Partial<Profile>, token?: string | null): Promise<Profile> {
     if (USE_MOCK_API) {
       const state = getDemoState();
@@ -648,6 +696,7 @@ export const api = {
     }, token));
   },
 
+  /** Checks whether a username can be used as a public profile handle. */
   async checkUsername(username: string, token?: string | null): Promise<{ available: boolean }> {
     if (USE_MOCK_API) {
       const current = getDemoState().profile.username;
@@ -656,12 +705,14 @@ export const api = {
     return request<{ available: boolean }>(`/api/profiles/check-username/${encodeURIComponent(username)}`, {}, token);
   },
 
+  /** Loads portfolio projects and applies local public-page selection state. */
   async getProjects(token?: string | null): Promise<PortfolioProject[]> {
     if (USE_MOCK_API) return removeDemoImportProject(applyProjectSelection(clone(getDemoState().site.projects)));
     const projects = await request<BackendProject[]>('/api/profiles/me/projects', {}, token);
     return removeDemoImportProject(applyProjectSelection(projects.map(normalizeProject)));
   },
 
+  /** Creates a new portfolio project in profile-service. */
   async createProject(project: Partial<PortfolioProject>, token?: string | null): Promise<PortfolioProject> {
     if (USE_MOCK_API) {
       const state = getDemoState();
@@ -688,10 +739,12 @@ export const api = {
     return normalizeProject(created);
   },
 
+  /** Replaces the local list of project ids selected for public display. */
   setSelectedProjectIds(projectIds: string[]): void {
     writeSelectedProjectIds(projectIds);
   },
 
+  /** Toggles whether a project should be included in the public portfolio snapshot. */
   toggleProjectSelection(projectId: string, projects: PortfolioProject[]): PortfolioProject[] {
     const selectedIds = selectedIdsFromProjects(projects);
 
@@ -705,6 +758,7 @@ export const api = {
     return applyProjectSelection(projects);
   },
 
+  /** Loads or creates the current site, then joins blocks and projects for the UI. */
   async getSite(token?: string | null): Promise<Site> {
     if (USE_MOCK_API) return clone(getDemoState().site);
     const site = await getOrCreateSite(token);
@@ -715,6 +769,7 @@ export const api = {
     return normalizeSite(site, blocks, projects);
   },
 
+  /** Creates a site explicitly when the UI needs to initialize publication state. */
   async createSite(input: Partial<Site>, token?: string | null): Promise<Site> {
     if (USE_MOCK_API) {
       const state = getDemoState();
@@ -734,6 +789,7 @@ export const api = {
     return normalizeSite(site, [], await this.getProjects(token));
   },
 
+  /** Updates site metadata and returns the refreshed full site model. */
   async updateSite(siteId: string, patch: Partial<Site>, token?: string | null): Promise<Site> {
     if (USE_MOCK_API) {
       const state = getDemoState();
@@ -749,6 +805,7 @@ export const api = {
     return this.getSite(token);
   },
 
+  /** Publishes the site after syncing profile data into public snapshot blocks. */
   async publishSite(siteId: string, token?: string | null): Promise<Site> {
     if (USE_MOCK_API) {
       const state = getDemoState();
@@ -769,6 +826,7 @@ export const api = {
     return this.getSite(token);
   },
 
+  /** Loads available site templates for the template selector page. */
   async getTemplates(): Promise<TemplateOption[]> {
     if (USE_MOCK_API) {
       return [
@@ -782,6 +840,7 @@ export const api = {
     return templates.map(normalizeTemplate);
   },
 
+  /** Loads dashboard counters and readiness status from API Gateway. */
   async getDashboardSummary(token?: string | null): Promise<DashboardSummary> {
     if (USE_MOCK_API) {
       const state = getDemoState();
@@ -810,6 +869,7 @@ export const api = {
     };
   },
 
+  /** Loads a read-only public portfolio by username or slug. */
   async getPublicPortfolio(slug: string): Promise<PublicPortfolio> {
     if (USE_MOCK_API) {
       const state = getDemoState();

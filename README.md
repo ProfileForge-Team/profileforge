@@ -16,6 +16,8 @@ ProfileForge uses a microservice architecture.
 - RabbitMQ provides asynchronous communication between services.
 - SQLite is used as a separate database for every service in the MVP.
 
+More detailed project documentation is available in `docs/PROJECT_DOCUMENTATION.md`.
+
 ## Registration Flow
 
 1. The frontend sends a registration request through API Gateway.

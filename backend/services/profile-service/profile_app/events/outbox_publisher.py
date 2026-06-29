@@ -10,6 +10,7 @@ from profile_app.events.rabbitmq import rabbitmq
 logger = logging.getLogger("profile-service.outbox_publisher")
 
 async def process_outbox():
+    """Continuously publish pending profile-service outbox events."""
     while True:
         db = SessionLocal()
         try:
